@@ -1,6 +1,8 @@
 import gmsh
 import math
 
+file_name = "OpenFOAM_Testing/pintle_3d_sector.msh"
+
 gmsh.initialize()
 gmsh.model.add("pintle_3d_sector")
 
@@ -50,7 +52,7 @@ gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
 
 # Generate DD triangular mesh
 gmsh.model.mesh.generate(3)
-gmsh.write("pintle_3d.msh")
+gmsh.write(file_name)
 
 gmsh.fltk.run()
 
