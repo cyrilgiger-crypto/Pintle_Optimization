@@ -68,10 +68,10 @@ points2.append(points1[0])
 # create sub-curves
 l1 = [gmsh.model.geo.addLine(points1[i], points1[i+1]) for i in range(len(points1) - 1)]
 l2 = [gmsh.model.geo.addLine(points2[i], points2[i+1]) for i in range(len(points2) - 1)]
-f1 = gmsh.model.geo.addCircleArc(points1[-1], point_bl, points2[0])
+f1 = [gmsh.model.geo.addCircleArc(points1[-1], point_bl, points2[0])]
 
 # connect all curves to create loop
-c_all = l1 + [f1] + l2
+c_all = l1 + f1 + l2
 boundary = gmsh.model.geo.addCurveLoop(c_all)
 
 # consturct surface from loop
@@ -81,22 +81,31 @@ surface = gmsh.model.geo.addPlaneSurface([boundary])
 rev_out = gmsh.model.geo.revolve([(2,surface)], 0, 0, 0, 1, 0, 0, np.pi/2)
 vol = [tag for dim, tag in rev_out if dim == 3][0]
 
+# build geometry
+gmsh.model.geo.synchronize()
+
 #%% Tag surfaces
 
 # find created surface tags from revolve
-surf = [tag for dim, tag in rev_out if dim==2]
+surf_rev = [tag for dim, tag in rev_out if dim==2]
 
 # dict to map line tag to surface tag
-lin2sur = dict(zip(c_all[1:], surf[1:]))    # exclude line1 since its the center line
+lin2sur = dict(zip(c_all[1:], surf_rev[1:]))    # exclude line1 since its the center line
 
-gmsh.model.addPhysicalGroup(2, lin2sur[6], name="inlet_ox")
-gmsh.model.addPhysicalGroup(2, lin2sur[11], name="inlet_fl")
-gmsh.model.addPhysicalGroup(2, lin2sur[2], name="outlet")
-gmsh.model.addPhysicalGroup(1, 1, name="axis")
+gmsh.model.addPhysicalGroup(2, [lin2sur[6]], name="inlet_ox")
+gmsh.model.addPhysicalGroup(2, [lin2sur[11]], name="inlet_fl")
+gmsh.model.addPhysicalGroup(2, [lin2sur[2]], name="outlet")
+gmsh.model.addPhysicalGroup(1, [1], name="axis")
+
+l_wall = np.r_[3:6, 7:11, 12:16, 16].tolist()
+tag_wall = [lin2sur[i] for i in l_wall]
+gmsh.model.addPhysicalGroup(2, tag_wall, name="wall")
+
+gmsh.model.addPhysicalGroup(2, [surface], name="periodic_0")
+gmsh.model.addPhysicalGroup(2, [surf_rev[0]], name="periodic_rev")
 
 #%% Launch gmsh 
 
-gmsh.model.geo.synchronize()
 gmsh.fltk.run()
 gmsh.finalize()
 
