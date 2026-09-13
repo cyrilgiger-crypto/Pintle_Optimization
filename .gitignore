@@ -21,3 +21,8 @@ log.*
 *.foam
 .vscode/
 .DS_Store
+
+# images
+*.bmp
+*.jpg
+*.png

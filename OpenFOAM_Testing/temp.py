@@ -2,9 +2,9 @@ import salome
 salome.salome_init()
 
 import GEOM
-from salome.geom import geomBuilder
+from salome.geom import geomBuilder # type: ignore
 import SMESH
-from salome.smesh import smeshBuilder
+from salome.smesh import smeshBuilder # type: ignore
 
 # --- 1. GEOMETRY CREATION ---
 geompy = geomBuilder.New()

@@ -82,27 +82,11 @@ closing_line = [geompy.MakeLineTwoPnt(vert2[-1], vert1[0])]
 wire = geompy.MakeWire(lin1+arc+lin2+closing_line)
 face = geompy.MakeFaceWires([wire], True)
 
-# Register the face in the SALOME Study Tree
-# geompy.addToStudy(face, "Fluid_Domain_Face")
-
-# Create local reference wire and extract actual sub-shapes from 'face'
-# pintle_wire = geompy.MakeWire(arc + lin2)
-# sub_edges = [geompy.GetSame(face, edge) for edge in (arc + lin2)]
-
-# # Group extracted sub-shapes
-# pintle_edges = geompy.CreateGroup(face, geompy.ShapeType["EDGE"])
-# geompy.UnionList(pintle_edges, sub_edges)
-# geompy.addToStudyInFather(face, pintle_edges, "Pintle_Edges")
-
 #%% Revolve 90 degrees around X-axis
 
 axis_x = geompy.MakeVectorDXDYDZ(1.0, 0.0, 0.0)
 solid_90deg = geompy.MakeRevolution(face, axis_x, math.radians(90.0))
 geompy.addToStudy(solid_90deg, "Fluid_Domain_3D_90deg")
-
-# # Update GUI Object Browser
-# if salome.sg.hasDesktop():
-#     salome.sg.updateObjBrowser()
 
 #%% Find surfaces
 
@@ -154,38 +138,50 @@ geompy.addToStudyInFather(solid_90deg, grp_out, "outlet")
 
 #%% Setup mesh
 
+def set_mesh(type, max_size, min_size, growth_rate, group = None):
+    mesh_handle = mesh.Triangle(algo=smeshBuilder.NETGEN_1D2D, geom=group) if type == "2D" else mesh.Tetrahedron(algo=smeshBuilder.NETGEN_1D2D3D)
+    params_handle = mesh_handle.Parameters()
+    params_handle.SetFineness(smeshBuilder.Custom)
+    params_handle.SetMaxSize(max_size)
+    params_handle.SetMinSize(min_size)
+    params_handle.SetGrowthRate(growth_rate)
+    params_handle.SetUseSurfaceCurvature(False)
+    return mesh_handle
+
 # Initialize mesh
 mesh = smeshpy.Mesh(solid_90deg)
 
 min_fine_size = (rp * lc) / 5.0
 max_coarse_size = cf*lc
 
-# --- 1. GLOBAL 3D SOLVER ---
-netgen_3d = mesh.Tetrahedron(algo=smeshBuilder.NETGEN_1D2D3D)
-glob_params = netgen_3d.Parameters()
-glob_params.SetFineness(smeshBuilder.Custom)
-glob_params.SetMaxSize(max_coarse_size)
-# glob_params.SetMinSize(min_fine_size)       # Allow volume elements to start small near boundary
-glob_params.SetGrowthRate(0.1)             # Controls expansion rate into interior (0.1 = smoothest)
-glob_params.SetUseSurfaceCurvature(False)
+# Global element settings
+mesh_3D = set_mesh("3D", max_coarse_size, min_fine_size, 0.2)
+# 2D surface mesh refinement near injector
+mesh_2D_inj = set_mesh("2D", rp*lc, min_fine_size, 0.15, grp_w_inj)
+# 2D surface mesh coarsening on outlet
+mesh_2D_out = set_mesh("2D", cf*lc, lc, 0.25, grp_out)
 
-# --- 2. LOCAL INJECTOR REFINEMENT (Fine Region) ---
-submesh_inj = mesh.Triangle(algo=smeshBuilder.NETGEN_1D2D, geom=grp_w_inj)
-inj_params = submesh_inj.Parameters()
-inj_params.SetFineness(smeshBuilder.Custom)
-inj_params.SetMaxSize(rp * lc)
-inj_params.SetMinSize(min_fine_size)
-inj_params.SetGrowthRate(0.15)            # Smooth transition across the surface face
-inj_params.SetUseSurfaceCurvature(False)
+#%% Add inflation layers to injector and chamber walls
 
-# --- 3. LOCAL OUTLET COARSENING (Coarse Region) ---
-submesh_out = mesh.Triangle(algo=smeshBuilder.NETGEN_1D2D, geom=grp_out)
-out_params = submesh_out.Parameters()
-out_params.SetFineness(smeshBuilder.Custom)
-out_params.SetMaxSize(cf * lc)
-out_params.SetMinSize(lc / 2.0)
-out_params.SetGrowthRate(0.25)            # Moderate transition toward coarse boundary
-out_params.SetUseSurfaceCurvature(False)
+def add_viscous_layers(bl_thickness, no_layers, growth_ratio, face_id):
+    viscous_layers = smeshpy.CreateHypothesis('ViscousLayers')
+    viscous_layers.SetTotalThickness(bl_thickness)
+    viscous_layers.SetNumberLayers(no_layers)
+    viscous_layers.SetStretchFactor(growth_ratio)
+    viscous_layers.SetFaces(face_id, 0)
+    mesh.AddHypothesis(viscous_layers)
+    return viscous_layers
+
+def get_faces_id(faces: list):
+    faces_id = [geompy.GetSubShapeID(solid_90deg, face) for face in faces]
+    return faces_id
+
+# Chamber wall inflation layers
+visc_w = add_viscous_layers(4.03e-4, 15, 1.01, get_faces_id(faces_w))
+
+# Injector wall inflation layers
+visc_w_inj = add_viscous_layers(2.17e-5, 15, 1.13, get_faces_id(faces_w_f+faces_w_o))
+
 
 #%% Compute mesh
 is_done = mesh.Compute()
