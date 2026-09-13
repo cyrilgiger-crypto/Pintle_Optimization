@@ -1,9 +1,11 @@
 #%% Imports
 import math
 import numpy as np
+from pathlib import Path
 import salome
 from salome.geom import geomBuilder # type: ignore
 from salome.smesh import smeshBuilder # type: ignore
+import SMESH
 
 salome.salome_init()
 geompy = geomBuilder.New()
@@ -30,13 +32,16 @@ r_bl = 3e-3     # [m], blend radius on rod
 
 # Domain dimensions
 L_ex = 10e-3    # [m], extension of ox and f channels in -x
-D_do = 70e-3   # [m], domain external wall diameter
+D_do = 70e-3    # [m], domain external wall diameter
 L_do = 100e-3   # [m], domain length
 
 # Mesh settings
 lc = 1.0e-3     # [m], base mesh size
 rp = 0.2        # [-], refinement factor near pintle
 cf = 3.0        # [-], coarsening far away
+
+# Misc
+mesh_export = False
 
 #%% Define geometry points
 
@@ -122,19 +127,39 @@ faces_in_o = get_revolved_faces(solid_90deg, lin_in_o, axis_x, math.radians(90))
     # Chamber outlet
 faces_out = get_revolved_faces(solid_90deg, lin_out, axis_x, math.radians(90))
 
+# Find periodic BC faces at 0° and 90°
+faces_p_0  = geompy.GetInPlace(solid_90deg, face)
+faces_p_90 = geompy.GetInPlace(solid_90deg, geompy.MakeRotation(face, axis_x, math.radians(90.0)))
+
 # Create geom groups
     # Combustion chamber group
 grp_w = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
 geompy.UnionList(grp_w, faces_w)
-geompy.addToStudyInFather(solid_90deg, grp_w, "wall_chamber")
+geompy.addToStudyInFather(solid_90deg, grp_w, "wall_ch")
     # Injector wall group
 grp_w_inj = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
 geompy.UnionList(grp_w_inj, faces_w_o+faces_w_f)
-geompy.addToStudyInFather(solid_90deg, grp_w_inj, "wall_injector")
-    # Injector wall group
+geompy.addToStudyInFather(solid_90deg, grp_w_inj, "wall_inj")
+    # Injector inlet oxidizer
+grp_in_o = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
+geompy.UnionList(grp_in_o, faces_in_o)
+geompy.addToStudyInFather(solid_90deg, grp_in_o, "inlet_o")
+    # Injector inlet fuel
+grp_in_f = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
+geompy.UnionList(grp_in_f, faces_in_f)
+geompy.addToStudyInFather(solid_90deg, grp_in_f, "inlet_f")
+    # Chamber outlet group
 grp_out = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
 geompy.UnionList(grp_out, faces_out)
 geompy.addToStudyInFather(solid_90deg, grp_out, "outlet")
+    # 0° periodic face group
+grp_per_0 = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
+geompy.UnionList(grp_per_0, [faces_p_0])
+geompy.addToStudyInFather(solid_90deg, grp_per_0, "periodic_0")
+    # 90° periodic face group
+grp_per_90 = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
+geompy.UnionList(grp_per_90, [faces_p_90])
+geompy.addToStudyInFather(solid_90deg, grp_per_90, "periodic_90")
 
 #%% Setup mesh
 
@@ -183,8 +208,28 @@ visc_w = add_viscous_layers(4.03e-4, 15, 1.01, get_faces_id(faces_w))
 visc_w_inj = add_viscous_layers(2.17e-5, 15, 1.13, get_faces_id(faces_w_f+faces_w_o))
 
 
-#%% Compute mesh
+#%% Compute mesh and export
+
 is_done = mesh.Compute()
+
+if is_done and mesh_export:
+    # Dictionary mapping OpenFOAM patch names to geompy groups
+    patch_groups = {
+        "wall_ch": grp_w,
+        "wall_inj": grp_w_inj,
+        "inlet_o": grp_in_o,
+        "inlet_f": grp_in_f,
+        "outlet": grp_out,
+        "periodic_0": grp_per_0,
+        "periodic_90": grp_per_90
+    }
+
+    for patch_name, geom_grp in patch_groups.items():
+        mesh.GroupOnGeom(geom_grp, patch_name, SMESH.FACE)
+
+    output_path = str(Path.cwd() / "meshes" / f"{name}.unv")
+    mesh.ExportUNV(output_path)
+    print(f"✅ Exported {len(patch_groups)} patches to {output_path}")
 
 if salome.sg.hasDesktop():
     salome.sg.updateObjBrowser()
