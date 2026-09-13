@@ -5,6 +5,7 @@ __pycache__/
 
 # OpenFOAM Heavy Time & Processor Folders
 0.*/
+!0.orig/
 [1-9]*/
 processor*
 postProcessing/
