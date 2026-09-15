@@ -125,7 +125,7 @@ def exportToFoam(mesh,dirname='polyMesh'):
         return
 
     #Get salome properties
-    smesh = smeshBuilder.New(salome.myStudy)
+    smesh = smeshBuilder.New()
 
     __debugPrint__('Number of nodes: %d\n' %(mesh.NbNodes()))
     volumes=mesh.GetElementsByType(SMESH.VOLUME)
@@ -427,7 +427,7 @@ def exportToFoam(mesh,dirname='polyMesh'):
             fileBoundary.write("wall;\n")
         elif "periodic" in gname.lower():
             neighbour = "periodic_90" if "periodic_0" in gname.lower() else "periodic_0"
-            fileBoundary.write("\ttype\t\tcyclicAMI;\n")
+            fileBoundary.write("cyclicAMI;\n")
             fileBoundary.write("\tmatchTolerance\t0.0001;\n")
             fileBoundary.write("\tneighbourPatch\t%s;\n" % neighbour)
             fileBoundary.write("\ttransform\trotational;\n")
@@ -598,7 +598,7 @@ def __crossprod__(u,v):
 
 def findSelectedMeshes():
     meshes=list()
-    smesh = smeshBuilder.New(salome.myStudy)
+    smesh = smeshBuilder.New()
     nrSelected=salome.sg.SelectedCount() # total number of selected items
     
     foundMesh=False
