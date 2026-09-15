@@ -2,6 +2,7 @@
 import math
 import numpy as np
 from pathlib import Path
+from Functions.salomeToOpenFOAM import exportToFoam
 import salome
 from salome.geom import geomBuilder # type: ignore
 from salome.smesh import smeshBuilder # type: ignore
@@ -41,7 +42,7 @@ rp = 0.2        # [-], refinement factor near pintle
 cf = 3.0        # [-], coarsening far away
 
 # Misc
-mesh_export = False
+mesh_export = True
 
 #%% Define geometry points
 
@@ -108,6 +109,7 @@ def get_revolved_faces(solid, lines, axis, angle_rad):
 lin_w = lin1[2:4]
 lin_w_f = [lin1[i] for i in [4,6]]
 lin_w_o = [lin1[i] for i in [7,8,9,11]] + arc + lin2
+lin_w_i = closing_line
     # In and outlet lines
 lin_in_f = [lin1[5]]
 lin_in_o = [lin1[10]]
@@ -116,10 +118,12 @@ lin_out  = [lin1[1]]
 # Find corresponding faces
     # Combustion chamber faces
 faces_w = get_revolved_faces(solid_90deg, lin_w, axis_x, math.radians(90))
-    # Injector fuel-side faces
+    # Injector fuel-side wall faces
 faces_w_f = get_revolved_faces(solid_90deg, lin_w_f, axis_x, math.radians(90))
-    # Injector oxidizer-side faces
+    # Injector oxidizer-side wall faces
 faces_w_o = get_revolved_faces(solid_90deg, lin_w_o, axis_x, math.radians(90))
+    # Injector remaining wall faces
+faces_w_i = get_revolved_faces(solid_90deg, lin_w_i, axis_x, math.radians(90))
     # Injector fuel inlet
 faces_in_f = get_revolved_faces(solid_90deg, lin_in_f, axis_x, math.radians(90))
     # Injector oxidizer inlet
@@ -136,10 +140,14 @@ faces_p_90 = geompy.GetInPlace(solid_90deg, geompy.MakeRotation(face, axis_x, ma
 grp_w = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
 geompy.UnionList(grp_w, faces_w)
 geompy.addToStudyInFather(solid_90deg, grp_w, "wall_ch")
-    # Injector wall group
-grp_w_inj = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
-geompy.UnionList(grp_w_inj, faces_w_o+faces_w_f)
-geompy.addToStudyInFather(solid_90deg, grp_w_inj, "wall_inj")
+    # Injector fluid wall group
+grp_w_of = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
+geompy.UnionList(grp_w_of, faces_w_o+faces_w_f)
+geompy.addToStudyInFather(solid_90deg, grp_w_of, "wall_of")
+    # Injector remaining wall group
+grp_w_i = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
+geompy.UnionList(grp_w_i, faces_w_i)
+geompy.addToStudyInFather(solid_90deg, grp_w_i, "wall_i")
     # Injector inlet oxidizer
 grp_in_o = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
 geompy.UnionList(grp_in_o, faces_in_o)
@@ -171,6 +179,7 @@ def set_mesh(type, max_size, min_size, growth_rate, group = None):
     params_handle.SetMinSize(min_size)
     params_handle.SetGrowthRate(growth_rate)
     params_handle.SetUseSurfaceCurvature(False)
+    params_handle.SetSecondOrder(False)
     return mesh_handle
 
 # Initialize mesh
@@ -182,7 +191,7 @@ max_coarse_size = cf*lc
 # Global element settings
 mesh_3D = set_mesh("3D", max_coarse_size, min_fine_size, 0.2)
 # 2D surface mesh refinement near injector
-mesh_2D_inj = set_mesh("2D", rp*lc, min_fine_size, 0.15, grp_w_inj)
+mesh_2D_inj = set_mesh("2D", rp*lc, min_fine_size, 0.15, grp_w_of)
 # 2D surface mesh coarsening on outlet
 mesh_2D_out = set_mesh("2D", cf*lc, lc, 0.25, grp_out)
 
@@ -204,32 +213,36 @@ def get_faces_id(faces: list):
 # Chamber wall inflation layers
 visc_w = add_viscous_layers(4.03e-4, 15, 1.01, get_faces_id(faces_w))
 
-# Injector wall inflation layers
-visc_w_inj = add_viscous_layers(2.17e-5, 15, 1.13, get_faces_id(faces_w_f+faces_w_o))
+# Injector fluid wall inflation layers
+visc_w_of = add_viscous_layers(2.17e-5, 15, 1.13, get_faces_id(faces_w_f+faces_w_o))
 
+# Injector fluid wall inflation layers
+visc_w_i = add_viscous_layers(4.03e-4, 15, 1.01, get_faces_id(faces_w_i))
 
 #%% Compute mesh and export
 
 is_done = mesh.Compute()
 
+# Dictionary mapping OpenFOAM patch names to geompy groups
+patch_groups = {
+    "wall_ch": grp_w,
+    "wall_of": grp_w_of,
+    "wall_i": grp_w_i,
+    "inlet_o": grp_in_o,
+    "inlet_f": grp_in_f,
+    "outlet": grp_out,
+    "periodic_0": grp_per_0,
+    "periodic_90": grp_per_90
+}
+
+for patch_name, geom_grp in patch_groups.items():
+    mesh.GroupOnGeom(geom_grp, patch_name, SMESH.FACE)
+
 if is_done and mesh_export:
-    # Dictionary mapping OpenFOAM patch names to geompy groups
-    patch_groups = {
-        "wall_ch": grp_w,
-        "wall_inj": grp_w_inj,
-        "inlet_o": grp_in_o,
-        "inlet_f": grp_in_f,
-        "outlet": grp_out,
-        "periodic_0": grp_per_0,
-        "periodic_90": grp_per_90
-    }
-
-    for patch_name, geom_grp in patch_groups.items():
-        mesh.GroupOnGeom(geom_grp, patch_name, SMESH.FACE)
-
-    output_path = str(Path.cwd() / "meshes" / f"{name}.unv")
-    mesh.ExportUNV(output_path)
-    print(f"✅ Exported {len(patch_groups)} patches to {output_path}")
+    output_path = str(Path.cwd() / "run_openfoam" / "constant" / "polyMesh")
+    # Export mesh directly
+    exportToFoam(mesh, output_path)
+    print(f"✅ Exported OpenFOAM Mesh {len(patch_groups)} patches to {output_path}")
 
 if salome.sg.hasDesktop():
     salome.sg.updateObjBrowser()
