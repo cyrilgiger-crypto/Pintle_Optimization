@@ -9,30 +9,46 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    object      topoSetDict;
+    class       volScalarField;
+    object      k;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-actions
-(
-    // Get all faces in cellSet
+dimensions      [0 2 -2 0 0 0 0];
+
+internalField   uniform 0.0001;
+
+boundaryField
+{
+    "wall_.*"
     {
-        name    f0;
-        type    faceSet;
-        action  new;
-        source  patchToFace;
-        patch   sides;
+        type            kLowReWallFunction;
+        value           uniform 1e-10;
     }
 
+    inlet_f
     {
-        name    collector;
-        type    faceZoneSet;
-        action  new;
-        source  setToFaceZone;
-        faceSet f0;
+        type            fixedValue;
+        value           uniform 24.0;   // Estimated using k = 1.5 * (U * I)^2 for U = 80m/s and I = 5%
     }
-);
 
+    inlet_o
+    {
+        type            fixedValue;
+        value           uniform 0.24;   // Estimated using k = 1.5 * (U * I)^2 for U = 8m/s and I = 5%
+    }
+
+    outlet
+    {
+        type            inletOutlet;
+        inletValue      uniform 0.1;
+        value           uniform 0.1;
+    }
+
+    "periodic_.*"
+    {
+        type            cyclicAMI;
+    }
+}
 
 // ************************************************************************* //

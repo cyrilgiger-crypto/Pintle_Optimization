@@ -20,22 +20,36 @@ internalField   uniform (0 0 0);
 
 boundaryField
 {
-    top
+    inlet_o
     {
-        type            fixedValue;
-        value           $internalField;
+        type            flowRateInletVelocity;
+        massFlowRate    constant 0.128; // [kg/s]
+        rho             constant 1000;  // Liquid density [kg/m³]
+        value           uniform (0 0 0);
     }
 
-    bottom
+    inlet_f
     {
-        type            fixedValue;
-        value           $internalField;
+        type            flowRateInletVelocity;
+        massFlowRate    constant 0.032; // [kg/s]
+        rho             constant 1.2;   // Gas phase density [kg/m³]
+        value           uniform (0 0 0);
     }
 
-    sides
+    "wall_.*"
+    {
+        type            noSlip;
+    }
+
+    outlet
     {
         type            pressureInletOutletVelocity;
-        value           $internalField;
+        value           uniform (0 0 0);
+    }
+
+    "periodic_.*"
+    {
+        type            cyclicAMI;
     }
 }
 

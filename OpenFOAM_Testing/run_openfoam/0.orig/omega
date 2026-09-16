@@ -10,37 +10,46 @@ FoamFile
     version     2.0;
     format      ascii;
     class       volScalarField;
-    object      p_rgh;
+    object      omega;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [1 -1 -2 0 0 0 0];
+dimensions      [0 0 -1 0 0 0 0];
 
-internalField   uniform 0;
+internalField   uniform 100;  // Estimate based on omega = C_mu^(-1/4) * k^(1/2) / l
 
 boundaryField
 {
-    "inlet_.*"
-    {
-        type            fixedFluxPressure;
-        value           uniform 0;
-    }
-
     "wall_.*"
     {
-        type            fixedFluxPressure;
-        value           uniform 0;
+        type            omegaWallFunction;  // calculates exact value based on local y
+        value           uniform 100000; // Seed based on omega = 60 * nu / beta * y^2, beta = 0.075
+    }
+
+    inlet_f
+    {
+        type            fixedValue;
+        value           uniform 6000;   // Estimate based on omega = C_mu^(-1/4) * k^(1/2) / L where L = 0.1 * Dh
+    }
+
+    inlet_o
+    {
+        type            fixedValue;
+        value           uniform 60000;  // Estimate based on omega = C_mu^(-1/4) * k^(1/2) / L where L = 0.1 * Dh
     }
 
     outlet
     {
-        type            fixedValue;
-        value           uniform 0;
+        type            inletOutlet;
+        inletValue      uniform 100;
+        value           uniform 100;
     }
 
     "periodic_.*"
     {
         type            cyclicAMI;
+    }
+}
 
 
 // ************************************************************************* //

@@ -20,22 +20,33 @@ internalField   uniform 0;
 
 boundaryField
 {
-    top
+    inlet_o
+    {
+        type            fixedValue;
+        value           uniform 1;
+    }
+
+    inlet_f
     {
         type            fixedValue;
         value           uniform 0;
     }
 
-    bottom
+    "wall_.*"
     {
         type            zeroGradient;
     }
 
-    sides
+    outlet
     {
         type            inletOutlet;
         inletValue      uniform 0;
         value           uniform 0;
+    }
+
+    "periodic_.*"
+    {
+        type            cyclicAMI;
     }
 }
 
