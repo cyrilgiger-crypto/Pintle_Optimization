@@ -23,17 +23,15 @@ boundaryField
     inlet_o
     {
         type            flowRateInletVelocity;
-        massFlowRate    constant 0.128; // [kg/s]
-        rho             constant 1000;  // Liquid density [kg/m³]
-        value           uniform (0 0 0);
+        massFlowRate    constant 0.0035555555555555557; // [kg/s] -> full: 0.128, 10° segment: 0.0035555555555555557
+        rhoInlet        1145.4434108400221;  // Liquid density [kg/m³]
     }
 
     inlet_f
     {
         type            flowRateInletVelocity;
-        massFlowRate    constant 0.032; // [kg/s]
-        rho             constant 1.2;   // Gas phase density [kg/m³]
-        value           uniform (0 0 0);
+        massFlowRate    constant 0.0008888888888888889; // [kg/s] -> full: 0.032, 10° segment: 0.0008888888888888889
+        rhoInlet        13.306638347029947;   // Gas phase density [kg/m³]
     }
 
     "wall_.*"
