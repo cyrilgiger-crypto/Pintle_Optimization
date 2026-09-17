@@ -426,7 +426,7 @@ def exportToFoam(mesh,dirname='polyMesh'):
         if "wall" in gname.lower():
             fileBoundary.write("wall;\n")
         elif "periodic" in gname.lower():
-            neighbour = "periodic_90" if "periodic_0" in gname.lower() else "periodic_0"
+            neighbour = "periodic_rev" if "periodic_0" in gname.lower() else "periodic_0"
             fileBoundary.write("cyclicAMI;\n")
             fileBoundary.write("\tmatchTolerance\t0.0001;\n")
             fileBoundary.write("\tneighbourPatch\t%s;\n" % neighbour)

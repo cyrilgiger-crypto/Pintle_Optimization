@@ -20,6 +20,7 @@ name = "Slot_Pintle_Fluid_Domain"   # file and project name
 D_po = 8.0e-3   # [m], pintle post diamater
 t_an = 0.5e-3   # [m], fuel annulus thickness
 L_po = 10e-3    # [m], pintle post length
+l_ch = 0.5e-3   # [m], chamfer length for fuel exit to prevent numerical instability
 
 # Oxidizer side
 D_pr = 3.0e-3   # [m], pintle rod diameter
@@ -40,6 +41,7 @@ L_do = 100e-3   # [m], domain length
 lc = 1.0e-3     # [m], base mesh size
 rp = 0.2        # [-], refinement factor near pintle
 cf = 3.0        # [-], coarsening far away
+angle = 10      # [°], revolution angle for periodic BC
 
 # Misc
 mesh_export = True
@@ -54,7 +56,8 @@ points1 = [
     (L_do, 0, 0),
     (L_do, D_do/2, 0),
     (0, D_do/2, 0),
-    (0, D_po/2+t_an, 0),
+    (0, D_po/2+t_an+l_ch, 0),
+    (-l_ch, D_po/2+t_an, 0),
     (-L_ex, D_po/2+t_an, 0),
     (-L_ex, D_po/2, 0),
     (L_po, D_po/2, 0),
@@ -88,11 +91,14 @@ closing_line = [geompy.MakeLineTwoPnt(vert2[-1], vert1[0])]
 wire = geompy.MakeWire(lin1+arc+lin2+closing_line)
 face = geompy.MakeFaceWires([wire], True)
 
-#%% Revolve 90 degrees around X-axis
+#%% Revolve x-degrees around X-axis
 
 axis_x = geompy.MakeVectorDXDYDZ(1.0, 0.0, 0.0)
-solid_90deg = geompy.MakeRevolution(face, axis_x, math.radians(90.0))
-geompy.addToStudy(solid_90deg, "Fluid_Domain_3D_90deg")
+solid_rev = geompy.MakeRevolution(face, axis_x, math.radians(angle))
+geompy.addToStudy(solid_rev, "Fluid_Domain_3D_rev")
+
+if salome.sg.hasDesktop():
+    salome.sg.updateObjBrowser()
 
 #%% Find surfaces
 
@@ -107,67 +113,67 @@ def get_revolved_faces(solid, lines, axis, angle_rad):
 # Origin lines
     # Wall lines
 lin_w = lin1[2:4]
-lin_w_f = [lin1[i] for i in [4,6]]
-lin_w_o = [lin1[i] for i in [7,8,9,11]] + arc + lin2
+lin_w_f = [lin1[i] for i in [4,5,7]]
+lin_w_o = [lin1[i] for i in [8,9,10,12]] + arc + lin2
 lin_w_i = closing_line
     # In and outlet lines
-lin_in_f = [lin1[5]]
-lin_in_o = [lin1[10]]
+lin_in_f = [lin1[6]]
+lin_in_o = [lin1[11]]
 lin_out  = [lin1[1]]
 
 # Find corresponding faces
     # Combustion chamber faces
-faces_w = get_revolved_faces(solid_90deg, lin_w, axis_x, math.radians(90))
+faces_w = get_revolved_faces(solid_rev, lin_w, axis_x, math.radians(angle))
     # Injector fuel-side wall faces
-faces_w_f = get_revolved_faces(solid_90deg, lin_w_f, axis_x, math.radians(90))
+faces_w_f = get_revolved_faces(solid_rev, lin_w_f, axis_x, math.radians(angle))
     # Injector oxidizer-side wall faces
-faces_w_o = get_revolved_faces(solid_90deg, lin_w_o, axis_x, math.radians(90))
+faces_w_o = get_revolved_faces(solid_rev, lin_w_o, axis_x, math.radians(angle))
     # Injector remaining wall faces
-faces_w_i = get_revolved_faces(solid_90deg, lin_w_i, axis_x, math.radians(90))
+faces_w_i = get_revolved_faces(solid_rev, lin_w_i, axis_x, math.radians(angle))
     # Injector fuel inlet
-faces_in_f = get_revolved_faces(solid_90deg, lin_in_f, axis_x, math.radians(90))
+faces_in_f = get_revolved_faces(solid_rev, lin_in_f, axis_x, math.radians(angle))
     # Injector oxidizer inlet
-faces_in_o = get_revolved_faces(solid_90deg, lin_in_o, axis_x, math.radians(90))
+faces_in_o = get_revolved_faces(solid_rev, lin_in_o, axis_x, math.radians(angle))
     # Chamber outlet
-faces_out = get_revolved_faces(solid_90deg, lin_out, axis_x, math.radians(90))
+faces_out = get_revolved_faces(solid_rev, lin_out, axis_x, math.radians(angle))
 
-# Find periodic BC faces at 0° and 90°
-faces_p_0  = geompy.GetInPlace(solid_90deg, face)
-faces_p_90 = geompy.GetInPlace(solid_90deg, geompy.MakeRotation(face, axis_x, math.radians(90.0)))
+# Find periodic BC faces at 0° and x°
+faces_p_0  = geompy.GetInPlace(solid_rev, face)
+faces_p_rev = geompy.GetInPlace(solid_rev, geompy.MakeRotation(face, axis_x, math.radians(angle)))
 
 # Create geom groups
     # Combustion chamber group
-grp_w = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
+grp_w = geompy.CreateGroup(solid_rev, geompy.ShapeType["FACE"])
 geompy.UnionList(grp_w, faces_w)
-geompy.addToStudyInFather(solid_90deg, grp_w, "wall_ch")
+geompy.addToStudyInFather(solid_rev, grp_w, "wall_ch")
     # Injector fluid wall group
-grp_w_of = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
+grp_w_of = geompy.CreateGroup(solid_rev, geompy.ShapeType["FACE"])
 geompy.UnionList(grp_w_of, faces_w_o+faces_w_f)
-geompy.addToStudyInFather(solid_90deg, grp_w_of, "wall_of")
+geompy.addToStudyInFather(solid_rev, grp_w_of, "wall_of")
     # Injector remaining wall group
-grp_w_i = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
+grp_w_i = geompy.CreateGroup(solid_rev, geompy.ShapeType["FACE"])
 geompy.UnionList(grp_w_i, faces_w_i)
-geompy.addToStudyInFather(solid_90deg, grp_w_i, "wall_i")
+geompy.addToStudyInFather(solid_rev, grp_w_i, "wall_i")
     # Injector inlet oxidizer
-grp_in_o = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
+grp_in_o = geompy.CreateGroup(solid_rev, geompy.ShapeType["FACE"])
 geompy.UnionList(grp_in_o, faces_in_o)
-geompy.addToStudyInFather(solid_90deg, grp_in_o, "inlet_o")
+geompy.addToStudyInFather(solid_rev, grp_in_o, "inlet_o")
     # Injector inlet fuel
-grp_in_f = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
+grp_in_f = geompy.CreateGroup(solid_rev, geompy.ShapeType["FACE"])
 geompy.UnionList(grp_in_f, faces_in_f)
-geompy.addToStudyInFather(solid_90deg, grp_in_f, "inlet_f")
+geompy.addToStudyInFather(solid_rev, grp_in_f, "inlet_f")
     # Chamber outlet group
-grp_out = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
+grp_out = geompy.CreateGroup(solid_rev, geompy.ShapeType["FACE"])
 geompy.UnionList(grp_out, faces_out)
-geompy.addToStudyInFather(solid_90deg, grp_out, "outlet")
+geompy.addToStudyInFather(solid_rev, grp_out, "outlet")
     # 0° periodic face group
-grp_per_0 = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
+grp_per_0 = geompy.CreateGroup(solid_rev, geompy.ShapeType["FACE"])
 geompy.UnionList(grp_per_0, [faces_p_0])
-geompy.addToStudyInFather(solid_90deg, grp_per_0, "periodic_0")
-    # 90° periodic face group
-grp_per_90 = geompy.CreateGroup(solid_90deg, geompy.ShapeType["FACE"])
-geompy.UnionList(grp_per_90, [faces_p_90])
-geompy.addToStudyInFather(solid_90deg, grp_per_90, "periodic_90")
+geompy.addToStudyInFather(solid_rev, grp_per_0, "periodic_0")
+    # x° periodic face group
+grp_per_rev = geompy.CreateGroup(solid_rev, geompy.ShapeType["FACE"])
+geompy.UnionList(grp_per_rev, [faces_p_rev])
+geompy.addToStudyInFather(solid_rev, grp_per_rev, "periodic_rev")
 
 #%% Setup mesh
 
@@ -183,7 +189,7 @@ def set_mesh(type, max_size, min_size, growth_rate, group = None):
     return mesh_handle
 
 # Initialize mesh
-mesh = smeshpy.Mesh(solid_90deg)
+mesh = smeshpy.Mesh(solid_rev)
 
 min_fine_size = (rp * lc) / 5.0
 max_coarse_size = cf*lc
@@ -207,7 +213,7 @@ def add_viscous_layers(bl_thickness, no_layers, growth_ratio, face_id):
     return viscous_layers
 
 def get_faces_id(faces: list):
-    faces_id = [geompy.GetSubShapeID(solid_90deg, face) for face in faces]
+    faces_id = [geompy.GetSubShapeID(solid_rev, face) for face in faces]
     return faces_id
 
 # Chamber wall inflation layers
@@ -232,7 +238,7 @@ patch_groups = {
     "inlet_f": grp_in_f,
     "outlet": grp_out,
     "periodic_0": grp_per_0,
-    "periodic_90": grp_per_90
+    "periodic_rev": grp_per_rev
 }
 
 for patch_name, geom_grp in patch_groups.items():
