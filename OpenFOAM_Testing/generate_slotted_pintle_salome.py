@@ -2,7 +2,7 @@
 import math
 import numpy as np
 from pathlib import Path
-from Functions.salomeToOpenFOAM import exportToFoam
+# from Functions.salomeToOpenFOAM import exportToFoam
 import salome
 from salome.geom import geomBuilder # type: ignore
 from salome.smesh import smeshBuilder # type: ignore
@@ -20,7 +20,7 @@ name = "Slot_Pintle_Fluid_Domain"   # file and project name
 D_po = 8.0e-3   # [m], pintle post diamater
 t_an = 0.5e-3   # [m], fuel annulus thickness
 L_po = 10e-3    # [m], pintle post length
-l_ch = 0.5e-3   # [m], chamfer length for fuel exit to prevent numerical instability
+r_ch = 0.5e-3   # [m], fillet radius for fuel exit for smooth BL growth and prevent Co number spikes
 
 # Oxidizer side
 D_pr = 3.0e-3   # [m], pintle rod diameter
@@ -44,7 +44,7 @@ cf = 3.0        # [-], coarsening far away
 angle = 10      # [°], revolution angle for periodic BC
 
 # Misc
-mesh_export = True
+mesh_export = False
 
 #%% Define geometry points
 
@@ -56,8 +56,12 @@ points1 = [
     (L_do, 0, 0),
     (L_do, D_do/2, 0),
     (0, D_do/2, 0),
-    (0, D_po/2+t_an+l_ch, 0),
-    (-l_ch, D_po/2+t_an, 0),
+    (0, D_po/2+t_an+r_ch, 0)]
+
+point_fl_c = (-r_ch, D_po/2+t_an+r_ch, 0)
+
+points2 = [
+    (-r_ch, D_po/2+t_an, 0),
     (-L_ex, D_po/2+t_an, 0),
     (-L_ex, D_po/2, 0),
     (L_po, D_po/2, 0),
@@ -69,7 +73,7 @@ points1 = [
 
 point_bl_c = (L_po+L_op-(D_po-D_pr)/2*tand(th_b)-r_bl*np.tan(a_bl), D_pr/2+r_bl, 0)
 
-points2 = [
+points3 = [
     (L_po+L_op-(D_po-D_pr)/2*tand(th_b)-r_bl*np.tan(a_bl)+r_bl*np.sin(2*a_bl),D_pr/2+r_bl*(1-np.cos(2*a_bl)), 0),
     (L_po+L_op, D_po/2, 0),
     (L_po+L_op+t_pt, D_po/2, 0)]
@@ -78,17 +82,21 @@ points2 = [
 
 # Define vertices
 vert1 = [geompy.MakeVertex(*pt) for pt in points1]
-v_center = geompy.MakeVertex(*point_bl_c)
+v_center1 = geompy.MakeVertex(*point_fl_c)
 vert2 = [geompy.MakeVertex(*pt) for pt in points2]
+v_center2 = geompy.MakeVertex(*point_bl_c)
+vert3 = [geompy.MakeVertex(*pt) for pt in points3]
 
 # Connect first part with lines
 lin1 = [geompy.MakeLineTwoPnt(vert1[i], vert1[i+1]) for i in range(len(vert1) - 1)]
-arc  = [geompy.MakeArcCenter(v_center, vert1[-1], vert2[0], False)]
+arc1 = [geompy.MakeArcCenter(v_center1, vert1[-1], vert2[0], False)]
 lin2 = [geompy.MakeLineTwoPnt(vert2[i], vert2[i+1]) for i in range(len(vert2) - 1)]
-closing_line = [geompy.MakeLineTwoPnt(vert2[-1], vert1[0])]
+arc2  = [geompy.MakeArcCenter(v_center2, vert2[-1], vert3[0], False)]
+lin3 = [geompy.MakeLineTwoPnt(vert3[i], vert3[i+1]) for i in range(len(vert3) - 1)]
+closing_line = [geompy.MakeLineTwoPnt(vert3[-1], vert1[0])]
 
 # Make closed surface
-wire = geompy.MakeWire(lin1+arc+lin2+closing_line)
+wire = geompy.MakeWire(lin1+arc1+lin2+arc2+lin3+closing_line)
 face = geompy.MakeFaceWires([wire], True)
 
 #%% Revolve x-degrees around X-axis
@@ -112,13 +120,13 @@ def get_revolved_faces(solid, lines, axis, angle_rad):
 
 # Origin lines
     # Wall lines
-lin_w = lin1[2:4]
-lin_w_f = [lin1[i] for i in [4,5,7]]
-lin_w_o = [lin1[i] for i in [8,9,10,12]] + arc + lin2
+lin_w = [lin1[i] for i in [2, 3]]
+lin_w_f = arc1 + [lin2[i] for i in [0, 2]]
+lin_w_o = [lin2[i] for i in [3, 4, 5, 7]] + arc2 + lin3
 lin_w_i = closing_line
     # In and outlet lines
-lin_in_f = [lin1[6]]
-lin_in_o = [lin1[11]]
+lin_in_f = [lin2[1]]
+lin_in_o = [lin2[6]]
 lin_out  = [lin1[1]]
 
 # Find corresponding faces
@@ -195,7 +203,7 @@ min_fine_size = (rp * lc) / 5.0
 max_coarse_size = cf*lc
 
 # Global element settings
-mesh_3D = set_mesh("3D", max_coarse_size, min_fine_size, 0.2)
+mesh_3D = set_mesh("3D", max_coarse_size, min_fine_size, 0.05)
 # 2D surface mesh refinement near injector
 mesh_2D_inj = set_mesh("2D", rp*lc, min_fine_size, 0.15, grp_w_of)
 # 2D surface mesh coarsening on outlet
