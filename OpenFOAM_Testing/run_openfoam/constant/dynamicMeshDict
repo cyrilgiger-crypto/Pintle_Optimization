@@ -1,0 +1,59 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      dynamicMeshDict;
+}
+
+dynamicFvMesh   dynamicRefineFvMesh;
+
+dynamicRefineFvMeshCoeffs
+{
+    // How often to evaluate and refine
+    refineInterval  1;
+
+    // Field to refine on
+    field           alpha.lox;
+
+    // Refine cells where 0.001 < alpha.lox < 0.999
+    lowerRefineLevel 0.001;
+    upperRefineLevel 0.999;
+
+    // Unrefine cells when interface leaves and value drops below threshold
+    unrefineLevel    0.0005;
+
+    // Transition buffer layers
+    nBufferLayers    2;
+
+    // Max refinement cuts per cell
+    maxRefinement    2;
+
+    // Stop refinement if maxCells reached
+    maxCells         200000;
+
+    // Flux fields to correct on changed faces
+    correctFluxes
+    (
+        (phi none)
+        (nHatf none)
+        (rhoPhi none)
+        (alphaPhi0.lox none)
+        (ghf none)
+        (alphaPhiUn none)
+    );
+
+    // Write refinement level as a volScalarField
+    dumpLevel        true;
+
+    protectedPatches ();
+}
+
+// ************************************************************************* //

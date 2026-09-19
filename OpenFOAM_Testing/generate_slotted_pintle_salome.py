@@ -20,7 +20,7 @@ name = "Slot_Pintle_Fluid_Domain"   # file and project name
 D_po = 8.0e-3   # [m], pintle post diamater
 t_an = 0.5e-3   # [m], fuel annulus thickness
 L_po = 10e-3    # [m], pintle post length
-r_ch = 0.5e-3   # [m], fillet radius for fuel exit for smooth BL growth and prevent Co number spikes
+r_fl = 0.5e-3   # [m], fillet radius for fuel exit for smooth BL growth and prevent Co number spikes
 
 # Oxidizer side
 D_pr = 3.0e-3   # [m], pintle rod diameter
@@ -56,12 +56,12 @@ points1 = [
     (L_do, 0, 0),
     (L_do, D_do/2, 0),
     (0, D_do/2, 0),
-    (0, D_po/2+t_an+r_ch, 0)]
+    (0, D_po/2+t_an+r_fl, 0)]
 
-point_fl_c = (-r_ch, D_po/2+t_an+r_ch, 0)
+point_fl_c = (-r_fl, D_po/2+t_an+r_fl, 0)
 
 points2 = [
-    (-r_ch, D_po/2+t_an, 0),
+    (-r_fl, D_po/2+t_an, 0),
     (-L_ex, D_po/2+t_an, 0),
     (-L_ex, D_po/2, 0),
     (L_po, D_po/2, 0),
@@ -204,6 +204,7 @@ max_coarse_size = cf*lc
 
 # Global element settings
 mesh_3D = set_mesh("3D", max_coarse_size, min_fine_size, 0.05)
+mesh_3D.Parameters().SetOptimize(True)
 # 2D surface mesh refinement near injector
 mesh_2D_inj = set_mesh("2D", rp*lc, min_fine_size, 0.15, grp_w_of)
 # 2D surface mesh coarsening on outlet
