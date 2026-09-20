@@ -18,7 +18,7 @@ dynamicCode/
 *.vtk
 *.unv
 *.med
-OpenFOAM_Testing/run_openfoam/constant/polyMesh/
+polyMesh/
 
 # Logs & System Files
 log.*
