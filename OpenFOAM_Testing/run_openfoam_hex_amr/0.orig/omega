@@ -1,0 +1,55 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      omega;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 -1 0 0 0 0];
+
+internalField   uniform 100;  // Estimate based on omega = C_mu^(-1/4) * k^(1/2) / l
+
+boundaryField
+{
+    "pintleDomain_wall_.*"
+    {
+        type            omegaWallFunction;  // calculates exact value based on local y
+        value           uniform 100000; // Seed based on omega = 60 * nu / beta * y^2, beta = 0.075
+    }
+
+    pintleDomain_inlet_f
+    {
+        type            fixedValue;
+        value           uniform 6000;   // Estimate based on omega = C_mu^(-1/4) * k^(1/2) / L where L = 0.1 * Dh
+    }
+
+    pintleDomain_inlet_o
+    {
+        type            fixedValue;
+        value           uniform 60000;  // Estimate based on omega = C_mu^(-1/4) * k^(1/2) / L where L = 0.1 * Dh
+    }
+
+    pintleDomain_outlet
+    {
+        type            inletOutlet;
+        inletValue      uniform 100;
+        value           uniform 100;
+    }
+
+    "pintleDomain_periodic_.*"
+    {
+        type            symmetry;
+    }
+}
+
+
+// ************************************************************************* //

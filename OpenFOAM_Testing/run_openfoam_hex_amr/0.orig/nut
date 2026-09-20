@@ -1,0 +1,48 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      nut;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 2 -1 0 0 0 0];
+
+internalField   uniform 0;  // solver calculates nut from k and omega
+
+boundaryField
+{
+    "pintleDomain_wall_.*"
+    {
+        type            nutkWallFunction;
+        value           uniform 0;
+    }
+
+    "pintleDomain_inlet_.*"
+    {
+        type            calculated;
+        value           uniform 0;
+    }
+
+    pintleDomain_outlet
+    {
+        type            calculated;
+        value           uniform 0;
+    }
+
+    "pintleDomain_periodic_.*"
+    {
+        type            symmetry;
+    }
+}
+
+
+// ************************************************************************* //

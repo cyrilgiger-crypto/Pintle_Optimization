@@ -1,0 +1,54 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      k;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 2 -2 0 0 0 0];
+
+internalField   uniform 0.0001;
+
+boundaryField
+{
+    "pintleDomain_wall_.*"
+    {
+        type            kqRWallFunction;
+        value           uniform 1e-10;
+    }
+
+    pintleDomain_inlet_f
+    {
+        type            fixedValue;
+        value           uniform 24.0;   // Estimated using k = 1.5 * (U * I)^2 for U = 80m/s and I = 5%
+    }
+
+    pintleDomain_inlet_o
+    {
+        type            fixedValue;
+        value           uniform 0.24;   // Estimated using k = 1.5 * (U * I)^2 for U = 8m/s and I = 5%
+    }
+
+    pintleDomain_outlet
+    {
+        type            inletOutlet;
+        inletValue      uniform 0.1;
+        value           uniform 0.1;
+    }
+
+    "pintleDomain_periodic_.*"
+    {
+        type            symmetry;
+    }
+}
+
+// ************************************************************************* //

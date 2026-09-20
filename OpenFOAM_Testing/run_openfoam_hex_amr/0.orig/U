@@ -1,0 +1,55 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2406                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    pintleDomain_inlet_o
+    {
+        type            flowRateInletVelocity;
+        massFlowRate    constant 0.032; // [kg/s] -> full: 0.128, 90° segment: 0.032
+        rhoInlet        1145.4434108400221;  // Liquid density [kg/m³]
+    }
+
+    pintleDomain_inlet_f
+    {
+        type            flowRateInletVelocity;
+        massFlowRate    constant 0.008; // [kg/s] -> full: 0.032, 10° segment: 0.008
+        rhoInlet        13.306638347029947;   // Gas phase density [kg/m³]
+    }
+
+    "pintleDomain_wall_.*"
+    {
+        type            noSlip;
+    }
+
+    pintleDomain_outlet
+    {
+        type            pressureInletOutletVelocity;
+        value           uniform (0 0 0);
+    }
+
+    "pintleDomain_periodic_.*"
+    {
+        type            symmetry;
+    }
+}
+
+
+// ************************************************************************* //
