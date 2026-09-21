@@ -26,7 +26,8 @@ log.*
 .vscode/
 .DS_Store
 
-# images
+# images and videos
 *.bmp
 *.jpg
 *.png
+*.mp4

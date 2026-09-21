@@ -20,7 +20,7 @@ deltaT          1e-5;
 
 writeControl    adjustable;
 
-writeInterval   5e-5;
+writeInterval   0.5e-4;
 
 purgeWrite      0;
 
@@ -38,7 +38,7 @@ runTimeModifiable yes;
 
 adjustTimeStep  yes;
 
-maxCo           2.0;
+maxCo           0.7;
 
 maxAlphaCo      0.5;
 
@@ -46,44 +46,44 @@ maxDeltaT       1;
 
 startFrom       latestTime; // latestTime - Automatically picks up the latest saved time folder
 stopAt          endTime;   // to stop now: writeNow
-endTime         0.05;
+endTime         0.00165;
 startTime       0.0;
 
-functions
-{
-    extractEulerianParticles1
-    {
-        // Mandatory entries
-        type            extractEulerianParticles;
-        libs            (fieldFunctionObjects);
-        faceZone        collector;
-        alpha           alpha.lox;
+// functions
+// {
+//     extractEulerianParticles1
+//     {
+//         // Mandatory entries
+//         type            extractEulerianParticles;
+//         libs            (fieldFunctionObjects);
+//         faceZone        collector;
+//         alpha           alpha.lox;
 
-        // Optional entries
-        alphaThreshold  0.1;
-        nLocations      20;
-        U               U;
-        rho             rho;
-        phi             phi;
-        //minDiameter     1e-30;
-        //maxDiameter     1e30;
+//         // Optional entries
+//         alphaThreshold  0.1;
+//         nLocations      20;
+//         U               U;
+//         rho             rho;
+//         phi             phi;
+//         //minDiameter     1e-30;
+//         //maxDiameter     1e30;
 
-        // Optional (inherited) entries
-        writePrecision   6;
-        writeToFile      true;
-        useUserTime      false;
+//         // Optional (inherited) entries
+//         writePrecision   6;
+//         writeToFile      true;
+//         useUserTime      false;
 
-        region          region0;
-        enabled         false;
-        log             true;
-        timeStart       0;
-        timeEnd         1000;
-        executeControl  timeStep;
-        executeInterval 1;
-        writeControl    writeTime;
-        writeInterval   -1;
-    }
-}
+//         region          region0;
+//         enabled         false;
+//         log             true;
+//         timeStart       0;
+//         timeEnd         1000;
+//         executeControl  timeStep;
+//         executeInterval 1;
+//         writeControl    writeTime;
+//         writeInterval   -1;
+//     }
+// }
 
 
 // ************************************************************************* //

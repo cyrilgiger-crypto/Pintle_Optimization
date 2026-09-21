@@ -32,16 +32,16 @@ phaseCoupling
     active          on;
 
     // Start time
-    startTime       0.001;
+    startTime       1e-6;
 
     // Interval for converting droplets
     nInterval       20;
 
     // Limit of alpha for droplet detection
-    alphaLimit      0.002;
+    alphaLimit      0.002;  // orig: 0.002
 
     // Maximum diameter of injected droplets
-    dMax            0.002;
+    dMax            2e-3; // orig: 0.002
 
     // Maximum sphericity of injected droplets
     sphericity      2;

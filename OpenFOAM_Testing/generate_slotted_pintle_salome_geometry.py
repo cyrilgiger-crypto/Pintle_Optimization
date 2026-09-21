@@ -19,23 +19,23 @@ name = "Slot_Pintle_Fluid_Domain"   # file and project name
 # Fuel side
 D_po = 8.0e-3   # [m], pintle post diamater
 t_an = 0.5e-3   # [m], fuel annulus thickness
-L_po = 10e-3    # [m], pintle post length
-r_fl = 0.5e-3   # [m], fillet radius for fuel exit for smooth BL growth and prevent Co number spikes
+L_po = 3.0e-3   # [m], pintle post length
+r_fl = 1.0e-3   # [m], fillet radius for fuel exit for smooth BL growth and prevent Co number spikes
 
 # Oxidizer side
 D_pr = 3.0e-3   # [m], pintle rod diameter
-D_mp = 4.55e-3  # [m], minimum internal diamater of pintle post
-th_t = 30.0     # [°], top interal pintle angle
+D_mp = 6.0e-3   # [m], minimum internal diamater of pintle post
+th_t = 20.0     # [°], top interal pintle angle
 th_b = 20.0     # [°], bottom interal pintle angle
-L_op = 1.0e-3   # [m], pintle slit opening
+L_op = 0.5e-3   # [m], pintle slit opening
 t_po = 0.5e-3   # [m], post thickness at slit
 t_pt = 1e-3     # [m], pintle plate thickness
-r_bl = 3e-3     # [m], blend radius on rod
+r_bl = 2e-3     # [m], blend radius on rod
 
 # Domain dimensions
 L_ex = 10e-3    # [m], extension of ox and f channels in -x
 D_do = 70e-3    # [m], domain external wall diameter
-L_do = 100e-3   # [m], domain length
+L_do = 60e-3   # [m], domain length
 
 # Mesh settings
 lc = 1.0e-3     # [m], base mesh size

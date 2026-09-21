@@ -31,6 +31,15 @@ solvers
         cAlpha          1;
     }
 
+    // alpha.lox
+    // {
+    //     nAlphaCorr      2;
+    //     nAlphaSubCycles 1;
+    //     cAlpha          1;
+
+    //     advectionScheme MULES;
+    // }
+
     "pcorr.*"
     {
         solver          GAMG;
@@ -73,7 +82,8 @@ solvers
 PIMPLE
 {
     momentumPredictor no;
-    nCorrectors     3;
+    nOuterCorrectors  1;
+    nCorrectors     2;
     nNonOrthogonalCorrectors 0;
 }
 

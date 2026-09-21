@@ -18,7 +18,7 @@ dynamicFvMesh   dynamicRefineFvMesh;
 dynamicRefineFvMeshCoeffs
 {
     // How often to evaluate and refine
-    refineInterval  10;
+    refineInterval  20;
 
     // Field to refine on
     field           alpha.lox;
@@ -28,7 +28,7 @@ dynamicRefineFvMeshCoeffs
     upperRefineLevel 1.0;
 
     // Unrefine cells when interface leaves and value drops below threshold
-    unrefineLevel    0.0005;
+    // unrefineLevel    0.01;
 
     // Transition buffer layers
     nBufferLayers    6;
@@ -45,11 +45,9 @@ dynamicRefineFvMeshCoeffs
         (phi none)
         (nHatf none)
         (rhoPhi none)
-        (alphaPhi0.lox none)
         (ghf none)
-        (alphaPhiUn none)
-        (alphaPhi_ none)
         (dVf_ none)
+        (alphaPhi_ none)
     );
 
     // Write refinement level as a volScalarField
